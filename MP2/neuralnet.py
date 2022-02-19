@@ -48,7 +48,7 @@ class NeuralNet(nn.Module):
         self.lrate = lrate
         self.in_size = in_size
         self.out_size = out_size
-        self.model = nn.Sequential(nn.Linear(in_size, 32), nn.Sigmoid(), nn.Linear(32, out_size))
+        self.model = nn.Sequential(nn.Linear(in_size, 32), nn.ReLU(), nn.Linear(32, out_size))
 
     def forward(self, x):
         """Performs a forward pass through your neural net (evaluates f(x)).
@@ -97,7 +97,7 @@ def fit(train_set, train_labels, dev_set, n_iter, batch_size=100):
     losses = []
     yhats = []
     loss_fn = nn.CrossEntropyLoss()
-    net = NeuralNet(0.1, loss_fn, train_set.shape[1], 2)
+    net = NeuralNet(.1, loss_fn, train_set.shape[1], 2)
     
     batch_idx = -1 * batch_size
     for iter in range(n_iter):
