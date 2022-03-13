@@ -1,4 +1,5 @@
 from collections import deque
+import heapq
 
 # search.py
 # ---------------
@@ -73,11 +74,12 @@ class MST:
         return (x for y in (((i, j) for j in keys if i < j) for i in keys) for x in y)
 
 class CellNode:
-    def __init__(self, row, col, prev_row, prev_col):
+    def __init__(self, row, col, prev_row, prev_col, dist = 0):
         self.row = row
         self.col = col
         self.prev_row = prev_row
         self.prev_col = prev_col
+        self.dist = dist
         # self.row_col = str(row) + "," + str(col)
     
     def to_tuple(self):
@@ -107,7 +109,7 @@ def bfs(maze):
             # add neighbors if not at waypoint
             for neighbor in maze.neighbors(*curr_cell_as_tuple):
                 neighbor_as_cell = CellNode(neighbor[0], neighbor[1], curr_cell_as_tuple[0], curr_cell_as_tuple[1])
-                if maze.navigable(*neighbor) and not (neighbor_as_cell.to_tuple() in explored.keys()):
+                if not (neighbor_as_cell.to_tuple() in explored.keys()):
                     explored[neighbor_as_cell.to_tuple()] = neighbor_as_cell
                     frontier.append(neighbor_as_cell.to_tuple())
 
@@ -133,7 +135,46 @@ def astar_single(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    return []
+    waypoint_as_tuple = maze.waypoints[0]
+    closest_path = []
+
+    first_cell = CellNode(maze.start[0], maze.start[1], -1, -1, 0)
+    explored = {first_cell.to_tuple() : first_cell}
+    frontier = [(0, first_cell.to_tuple())]
+    heapq.heapify(frontier)
+    
+    # go thru all paths
+    while len(frontier):
+        curr_cell_as_tuple = heapq.heappop(frontier)[1]
+        print(curr_cell_as_tuple)
+        curr_cell_maze = maze[curr_cell_as_tuple]
+        if curr_cell_maze == maze.legend.waypoint:
+            break
+        else:
+            # add neighbors if not at waypoint
+            for neighbor in maze.neighbors(*curr_cell_as_tuple):
+                neighbor_as_cell = CellNode(neighbor[0], neighbor[1], curr_cell_as_tuple[0], curr_cell_as_tuple[1], explored[curr_cell_as_tuple].dist + 1)
+                if not (neighbor_as_cell.to_tuple() in explored.keys()):
+                    neighbor_as_tuple = neighbor_as_cell.to_tuple()
+
+                    f_n = neighbor_as_cell.dist + manhattan_distance(waypoint_as_tuple, neighbor_as_tuple)
+                    explored[neighbor_as_tuple] = neighbor_as_cell
+                    heapq.heappush(frontier, (f_n, neighbor_as_tuple))
+
+    # create closest path
+    end_cell_as_tuple = maze.waypoints[0]
+    if end_cell_as_tuple in explored.keys():
+        curr_cell = explored.get(end_cell_as_tuple, None)
+        while not (curr_cell == None):
+            closest_path.append(curr_cell.to_tuple())
+            next_cell_as_tuple = (curr_cell.prev_row, curr_cell.prev_col)
+            curr_cell = explored.get(next_cell_as_tuple, None)
+    
+    closest_path.reverse()
+    return closest_path
+
+def manhattan_distance(a, b):
+    return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def astar_multiple(maze):
     """
