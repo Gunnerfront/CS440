@@ -1,3 +1,5 @@
+from collections import deque
+
 # search.py
 # ---------------
 # Licensing Information:  You are free to use or extend this projects for
@@ -70,6 +72,17 @@ class MST:
     def cross(self, keys):
         return (x for y in (((i, j) for j in keys if i < j) for i in keys) for x in y)
 
+class CellNode:
+    def __init__(self, row, col, prev_row, prev_col):
+        self.row = row
+        self.col = col
+        self.prev_row = prev_row
+        self.prev_col = prev_col
+        # self.row_col = str(row) + "," + str(col)
+    
+    def to_tuple(self):
+        return tuple((self.row, self.col))
+
 def bfs(maze):
     """
     Runs BFS for part 1 of the assignment.
@@ -78,7 +91,39 @@ def bfs(maze):
 
     @return path: a list of tuples containing the coordinates of each state in the computed path
     """
-    return []
+    closest_path = []
+
+    first_cell = CellNode(maze.start[0], maze.start[1], -1, -1)
+    explored = {first_cell.to_tuple() : first_cell}
+    frontier = deque((first_cell.to_tuple(), ))
+    
+    # go thru all paths
+    while frontier:
+        curr_cell_as_tuple = tuple(frontier.popleft())
+        curr_cell_maze = maze[curr_cell_as_tuple]
+        if curr_cell_maze == maze.legend.waypoint:
+            break
+        else:
+            # add neighbors if not at waypoint
+            for neighbor in maze.neighbors(*curr_cell_as_tuple):
+                neighbor_as_cell = CellNode(neighbor[0], neighbor[1], curr_cell_as_tuple[0], curr_cell_as_tuple[1])
+                if maze.navigable(*neighbor) and not (neighbor_as_cell.to_tuple() in explored.keys()):
+                    explored[neighbor_as_cell.to_tuple()] = neighbor_as_cell
+                    frontier.append(neighbor_as_cell.to_tuple())
+
+
+
+    # create closest path
+    end_cell_as_tuple = maze.waypoints[0]
+    if end_cell_as_tuple in explored.keys():
+        curr_cell = explored.get(end_cell_as_tuple, None)
+        while not (curr_cell == None):
+            closest_path.append(curr_cell.to_tuple())
+            next_cell_as_tuple = (curr_cell.prev_row, curr_cell.prev_col)
+            curr_cell = explored.get(next_cell_as_tuple, None)
+    
+    closest_path.reverse()
+    return closest_path
 
 def astar_single(maze):
     """
