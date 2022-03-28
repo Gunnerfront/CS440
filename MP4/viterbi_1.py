@@ -17,7 +17,6 @@ to predict the tag).
 """
 
 import math
-from os import system
 import numpy as np
 
 def viterbi_1(train, test):
