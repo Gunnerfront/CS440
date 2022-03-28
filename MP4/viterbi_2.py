@@ -25,7 +25,7 @@ def viterbi_2(train, test):
     output: list of sentences with tags on the words
             E.g., [[(word1, tag1), (word2, tag2)], [(word3, tag3), (word4, tag4)]]
     '''
-    laplace_k = 0.00001
+    laplace_k = 1e-3
     word_tag_pair_occurrences = {}
     tag_pair_occurences = {}
     tag_occurences = {}
@@ -75,7 +75,7 @@ def viterbi_2(train, test):
         if len(word_tag_pair_occurrences[word].keys()) == 1 and list(word_tag_pair_occurrences[word].values())[0] == 1:
             tag = list(word_tag_pair_occurrences[word].keys())[0]
             hapax[tag] = hapax.get(tag, 0) + 1
-    num_hapax_words = sum(hapax.values())
+    num_hapax_words = sum(hapax.values()) + 1
 
     # get initial tag probability distribution, pi
     pi = []
@@ -115,11 +115,11 @@ def viterbi_2(train, test):
                     tag_idx = get_tag_index_2(tags, tag)
                     log_b = 0.
                     if word in word_tag_pair_occurrences.keys() and tag in word_tag_pair_occurrences[word].keys():
-                        log_b = word_tag_pair_occurrences[word].get(tag, 0)
+                        log_b = word_tag_pair_occurrences[word].get(tag, 0.)
                     elif word in word_tag_pair_occurrences.keys():
-                        log_b = math.log(laplace_k / (tag_occurences[tag] + laplace_k * (V + 1)))
+                        log_b = math.log(laplace_k / (tag_occurences[tag] + laplace_k * (V + 1.)))
                     else:
-                        log_b =  math.log((hapax.get(tag, 0) + laplace_k) / (num_hapax_words + laplace_k * (V + 1)))
+                        log_b =  math.log((hapax.get(tag, 0.) + laplace_k) / (num_hapax_words + laplace_k * (V + 1.)))
                     prob_tag_pair = (log_b + pi[tag_idx], tag)      # (v_j1, tag)
                     prob_tag_pairs.append(prob_tag_pair)
             else:
@@ -131,11 +131,11 @@ def viterbi_2(train, test):
                         prev_node_prob_for_this_tag = trellis[word_count - 1][inner_tag_idx][0]
                         log_b = 0.
                         if word in word_tag_pair_occurrences.keys() and tag in word_tag_pair_occurrences[word].keys():
-                            log_b = word_tag_pair_occurrences[word].get(tag, 0)
+                            log_b = word_tag_pair_occurrences[word].get(tag, 0.)
                         elif word in word_tag_pair_occurrences.keys():
-                            log_b = math.log(laplace_k / (tag_occurences[tag] + laplace_k * (V + 1)))
+                            log_b = math.log(laplace_k / (tag_occurences[tag] + laplace_k * (V + 1.)))
                         else:
-                            log_b = math.log((hapax.get(tag, 0) + laplace_k) / (num_hapax_words + laplace_k * (V + 1)))
+                            log_b = math.log((hapax.get(tag, 0.) + laplace_k) / (num_hapax_words + laplace_k * (V + 1.)))
                         e = a[inner_tag_idx][outer_tag_idx] + log_b
                         v = prev_node_prob_for_this_tag + e
                         node_probs_for_this_tag.append(v)
@@ -146,7 +146,7 @@ def viterbi_2(train, test):
             trellis.append(prob_tag_pairs)
         
         # Make tagged sentence based on backtracking from trellis
-        tagged_sentence = TrellisToTaggedSentence_2(trellis, sentence)
+        tagged_sentence = trellis_to_tagged_sentence_2(trellis, sentence)
         tagged_sentences.append(tagged_sentence)
 
     return tagged_sentences
@@ -154,7 +154,7 @@ def viterbi_2(train, test):
 def get_tag_index_2(tags, tag):
     return tags.index(tag)
 
-def TrellisToTaggedSentence_2(trellis, sentence):
+def trellis_to_tagged_sentence_2(trellis, sentence):
     tagged_sentence = [('END', 'END')]
     trellix_idx = len(trellis) - 1
     sentence = sentence[0:-1]
