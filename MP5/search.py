@@ -96,6 +96,7 @@ def minimax(side, board, flags, depth):
       bestMove = argmax(moveVals)
 
     return moveVals[bestMove], moveLists[bestMove], moveTree
+    # minimax
 
 def alphabeta(side, board, flags, depth, alpha=-math.inf, beta=math.inf):
     '''
@@ -110,7 +111,42 @@ def alphabeta(side, board, flags, depth, alpha=-math.inf, beta=math.inf):
       flags (list of flags): list of flags, used by generateMoves and makeMove
       depth (int >=0): depth of the search (number of moves)
     '''
-    raise NotImplementedError("you need to write this!")
+    if depth == 0:
+      value = evaluate(board)
+      return value, [], {}
+    
+    moveTree = {}
+    moveVals = []
+    moveLists = []
+    for move in generateMoves(side,board,flags):
+      newSide, newBoard, newFlags = makeMove(side, board, move[0], move[1], flags, move[2])
+      recurseVal, recurseList, recurseMoveTree = alphabeta(newSide, newBoard, newFlags, depth - 1, alpha, beta)
+      
+      moveVals.append(recurseVal)
+      recurseList.insert(0, move)
+      moveLists.append(recurseList)
+      moveTree[encode(*move)] = recurseMoveTree
+
+      if side and beta > recurseVal:
+        # if black (Min), updates beta
+        beta = recurseVal
+      if not side and alpha < recurseVal:
+        # if white (Max) updates alpha
+        alpha = recurseVal
+      if alpha >= beta:
+        # prune other children
+        break
+
+    bestMove = 0
+    if side:
+      # if black (Min)
+      bestMove = argmin(moveVals)
+    else:
+      # if white (Max)
+      bestMove = argmax(moveVals)
+
+    return moveVals[bestMove], moveLists[bestMove], moveTree
+    # alphabeta
     
 
 def stochastic(side, board, flags, depth, breadth, chooser):
@@ -128,4 +164,29 @@ def stochastic(side, board, flags, depth, breadth, chooser):
       breadth: number of different paths 
       chooser: a function similar to random.choice, but during autograding, might not be random.
     '''
-    raise NotImplementedError("you need to write this!")
+    if depth == 0:
+      value = evaluate(board)
+      return value, [], {}
+    
+    moveTree = {}
+    moveVals = []
+    moveLists = []
+    for move in generateMoves(side,board,flags):
+      newSide, newBoard, newFlags = makeMove(side, board, move[0], move[1], flags, move[2])
+      recurseVal, recurseList, recurseMoveTree = stochastic(newSide, newBoard, newFlags, depth - 1, , )
+      
+      moveVals.append(recurseVal)
+      recurseList.insert(0, move)
+      moveLists.append(recurseList)
+      moveTree[encode(*move)] = recurseMoveTree
+
+    bestMove = 0
+    if side:
+      # if black (Min)
+      bestMove = argmin(moveVals)
+    else:
+      # if white (Max)
+      bestMove = argmax(moveVals)
+
+    return moveVals[bestMove], moveLists[bestMove], moveTree
+    # stochastic
