@@ -1,4 +1,5 @@
 import math
+from statistics import mean
 
 import chess.lib
 from chess.lib.utils import encode, decode
@@ -146,8 +147,14 @@ def alphabeta(side, board, flags, depth, alpha=-math.inf, beta=math.inf):
       bestMove = argmax(moveVals)
 
     return moveVals[bestMove], moveLists[bestMove], moveTree
-    # alphabeta
+    # alphabeta (quicker than minimax)
     
+def addToTree(moveTree, path):
+  if len(path) == 0:
+    return {}
+  else:
+    moveTree[encode(*path[0])] = addToTree({}, path[1:])
+    return moveTree
 
 def stochastic(side, board, flags, depth, breadth, chooser):
     '''
@@ -164,29 +171,43 @@ def stochastic(side, board, flags, depth, breadth, chooser):
       breadth: number of different paths 
       chooser: a function similar to random.choice, but during autograding, might not be random.
     '''
-    if depth == 0:
-      value = evaluate(board)
-      return value, [], {}
-    
-    moveTree = {}
-    moveVals = []
     moveLists = []
-    for move in generateMoves(side,board,flags):
-      newSide, newBoard, newFlags = makeMove(side, board, move[0], move[1], flags, move[2])
-      recurseVal, recurseList, recurseMoveTree = stochastic(newSide, newBoard, newFlags, depth - 1, , )
-      
-      moveVals.append(recurseVal)
-      recurseList.insert(0, move)
-      moveLists.append(recurseList)
-      moveTree[encode(*move)] = recurseMoveTree
+    initMoveVals = []
+    moveTree = {}
+    for initMove in generateMoves(side,board,flags):
+      initSide, initBoard, initFlags = makeMove(side, board, initMove[0], initMove[1], flags, initMove[2])
+      pathVals = []
+      pathMoveLists = []
+      moveTree[encode(*initMove)] = {}
+      for pathNum in range(breadth):
+        currSide, currBoard, currFlags = initSide, initBoard, initFlags
+        pathDepth = 1
+        pathMoveLists.append([])
+        pathMoveTree = {}
+        while (pathDepth < depth):
+          moves = [ mv for mv in generateMoves(currSide, currBoard, currFlags) ]
+          move = chooser(moves)
+          currSide, currBoard, currFlags = makeMove(currSide, currBoard, move[0], move[1], currFlags, move[2])
 
+          pathMoveLists[pathNum].append(move)
+
+          pathDepth += 1
+          if pathDepth == depth:
+            pathVals.append(evaluate(currBoard))
+            pathMoveTree = addToTree(pathMoveTree, pathMoveLists[pathNum])
+            moveTree[encode(*initMove)].update(pathMoveTree)
+      
+      initMoveVals.append(mean(pathVals))
+      moveLists.append([initMove] + pathMoveLists[0])
+
+    # Choose best initial move
     bestMove = 0
     if side:
       # if black (Min)
-      bestMove = argmin(moveVals)
+      bestMove = argmin(initMoveVals)
     else:
       # if white (Max)
-      bestMove = argmax(moveVals)
+      bestMove = argmax(initMoveVals)
 
-    return moveVals[bestMove], moveLists[bestMove], moveTree
-    # stochastic
+    return initMoveVals[bestMove], moveLists[bestMove], moveTree
+    # stochastic (even quicker but sucks usually)
