@@ -85,18 +85,16 @@ def create_word_maps_bi(X, y, max_size=None):
         values: number of times the word pair appears 
     """
     #print(len(X),'X')
-    pos_vocab = Counter()
-    neg_vocab = Counter()
-    ##TODO:
+    pos_vocab, neg_vocab = create_word_maps_uni(X, y)
+    #TODO:
     for emailNum in range(0, len(X)):
         for word in range(0, len(X[emailNum]) - 1):
-            bigram = X[emailNum][word] + X[emailNum][word + 1]
+            bigram = X[emailNum][word] + " " + X[emailNum][word + 1]
             if y[emailNum] == hamLabel:
                 pos_vocab[bigram] = pos_vocab[bigram] + 1
             elif y[emailNum] == spamLabel:
                 neg_vocab[bigram] = neg_vocab[bigram] + 1
     
-
     return pos_vocab, neg_vocab
 
 
@@ -212,11 +210,11 @@ def bigramBayes(train_set, train_labels, dev_set, unigram_laplace=0.001, bigram_
     totalHamWordTokens = counterTotal(hamWordCounts)
     totalSpamWordTokens = counterTotal(spamWordCounts)
 
-    totalHamTokens = counterTotal(hamWordCounts) + counterTotal(hamBigramCounts)
-    totalSpamTokens = counterTotal(spamWordCounts) + counterTotal(spamBigramCounts)
+    totalHamTokens = counterTotal(hamBigramCounts)
+    totalSpamTokens = counterTotal(spamBigramCounts)
 
-    distinctHamXValues = len(hamWordCounts) + len(hamBigramCounts)
-    distinctSpamXValues = len(spamWordCounts) + len(spamBigramCounts)
+    distinctHamXValues = len(hamBigramCounts)
+    distinctSpamXValues = len(spamBigramCounts)
 
     print("\nInitiating Dev Phase...\n")
     devLabels = []
@@ -246,7 +244,7 @@ def bigramBayes(train_set, train_labels, dev_set, unigram_laplace=0.001, bigram_
         biProductOfHamLikelihoods = 0.
         biProductOfSpamLikelihoods = 0.
         for word in range(0, len(email) - 1):
-            bigram = email[word] + email[word + 1]
+            bigram = email[word] + " " + email[word + 1]
             if bigram in hamBigramCounts:
                 pHamBigram = (hamBigramCounts[bigram] + bigram_laplace) / (totalHamTokens + bigram_laplace * (1 + distinctHamXValues))
                 biProductOfHamLikelihoods = biProductOfHamLikelihoods + np.log(pHamBigram)
@@ -267,11 +265,9 @@ def bigramBayes(train_set, train_labels, dev_set, unigram_laplace=0.001, bigram_
         # Final Calc
         finalHamProbability = abs(unigramProbHam)**(1 - bigram_lambda) * abs(bigramProbHam)**(bigram_lambda)
         finalSpamProbability = abs(unigramProbSpam)**(1 - bigram_lambda) * abs(bigramProbSpam)**(bigram_lambda)
-        print(finalHamProbability, finalSpamProbability)
 
         decision = np.argmin([finalSpamProbability, finalHamProbability])
         devLabels.append(decision)    # Appends 0 if probability of spam is higher, 1 if probability of ham is higher
-        #print(decision)
 
     print("\nReturning Dev Labels..\n")
     return devLabels
